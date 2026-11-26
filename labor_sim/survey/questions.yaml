@@ -1,0 +1,39 @@
+# Experiment 1 questions.
+#
+# !!! DRAFT WORDING !!!
+# The items below follow the topics of Pew Research Center's ATP Wave 157
+# (Oct 2024) workplace-AI survey, but the wording and answer options are
+# placeholders. Before any real run, replace `text`, `options` and `pew_var`
+# with the EXACT wording and variable names from the Wave 157 questionnaire
+# and codebook, then set `verified: true`.
+#
+# Convention: list options from the most hopeful / positive to the least,
+# and give each a `valence` (+1 positive, 0 neutral, -1 negative). The
+# optimism-gap metric uses these valences.
+
+questions:
+  - id: ai_future_feeling
+    pew_var: TODO
+    verified: false
+    text: "Thinking about the use of artificial intelligence in the workplace in the future, how do you feel?"
+    options:
+      - {label: "Mostly hopeful", valence: 1}
+      - {label: "Equally hopeful and worried", valence: 0}
+      - {label: "Mostly worried", valence: -1}
+  - id: ai_job_opportunities
+    pew_var: TODO
+    verified: false
+    text: "In the long run, do you think the use of AI in the workplace will lead to more job opportunities, fewer job opportunities, or not make much difference for people like you?"
+    options:
+      - {label: "More job opportunities", valence: 1}
+      - {label: "Not much difference", valence: 0}
+      - {label: "Fewer job opportunities", valence: -1}
+  - id: ai_chatbot_use
+    pew_var: TODO
+    verified: false
+    text: "How often, if ever, do you use AI chatbots for your work?"
+    options:
+      - {label: "Often", valence: 1}
+      - {label: "Sometimes", valence: 1}
+      - {label: "Rarely", valence: 0}
+      - {label: "Never", valence: -1}

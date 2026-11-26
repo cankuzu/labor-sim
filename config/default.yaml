@@ -1,0 +1,61 @@
+# Default configuration for labor-sim.
+# Copy to config/local.yaml and edit; local.yaml overrides keys from this file.
+
+paths:
+  raw: data/raw
+  processed: data/processed
+  results: results
+
+# ---------------------------------------------------------------------------
+# LLM backends
+# Backend "ollama" talks to a running Ollama server (local, Colab or Kaggle).
+# Backend "mock" needs no GPU and is used for tests and dry runs.
+# Verify tag names on https://ollama.com/library before the first run.
+# Base (non-instruct) models may have to be imported from a GGUF file on
+# Hugging Face if the Ollama library has no "text" tag for them.
+# ---------------------------------------------------------------------------
+llm:
+  backend: mock            # mock | ollama
+  ollama_url: http://localhost:11434
+  timeout_s: 120
+  max_retries: 2           # retries when the answer is not valid JSON
+  temperature: 0.7
+  max_tokens: 160
+  models:
+    llama-instruct: {tag: "llama3.1:8b-instruct-q4_K_M", mode: chat}
+    llama-base:     {tag: "llama3.1:8b-text-q4_K_M",     mode: completion}
+    qwen-instruct:  {tag: "qwen2.5:7b-instruct-q4_K_M",  mode: chat}
+    qwen-base:      {tag: "qwen2.5:7b-text-q4_K_M",      mode: completion}
+
+# ---------------------------------------------------------------------------
+# Experiment 1: survey simulation
+# ---------------------------------------------------------------------------
+survey:
+  questions_file: labor_sim/survey/questions.yaml
+  n_personas: 500
+  seeds: [1, 2, 3]
+  subgroups: [age_group, education, occupation_group]
+
+# ---------------------------------------------------------------------------
+# Experiment 2: labor market simulation
+# Numbers marked (calibration) come from the reviewed studies; see README.
+# ---------------------------------------------------------------------------
+simulation:
+  n_workers: 500
+  start_quarter: "2022Q4"
+  end_quarter: "2025Q4"
+  exposure_source: anthropic       # anthropic | eloundou | microsoft | aioe
+  seed: 1
+  quarterly_separation_rate: 0.035  # baseline churn per quarter
+  quarterly_entry_rate: 0.012       # new 22-year-old entrants per quarter, share of workforce
+  quarterly_job_creation_rate: 0.010  # new positions per quarter, share of staff (tune so no-AI runs stay flat)
+  young_age_max: 25                 # "young" = 22-25, as in Brynjolfsson et al. (2025)
+  ai_capability_growth: 0.25        # logistic growth speed of AI capability per quarter
+  initial_ai_adoption: 0.265        # (calibration) Bick, Blandin & Deming 2024: 26.5% of workers
+  time_saving_per_adopter: 0.028    # (calibration) Humlum & Vestergaard 2025: 2.8% of hours
+  employer_encouragement_boost: 0.36  # (calibration) H&V 2025: adoption 47% -> 83% with encouragement
+  novice_productivity_gain: 0.15    # (calibration) Brynjolfsson, Li & Raymond 2025: ~15%, mostly novices
+  default_automation_share: 0.43    # (calibration) Handa et al. 2025: 43% automation, used if AEI missing
+  bass_innovation: 0.04             # rule baseline: Bass diffusion p per quarter (Upreti & Sridhar 2024)
+  bass_imitation: 0.40              # rule baseline: Bass diffusion q per quarter
+  llm_worker_decisions_every: 1     # ask worker agents every N quarters (raise to save GPU time)

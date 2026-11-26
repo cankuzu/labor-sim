@@ -1,0 +1,48 @@
+sector,soc_prefixes,note
+Accounting,13-201,accountants and auditors
+Administrative Assistance,43-6;43-4171,secretaries and receptionists
+Architecture,17-101;27-1025,architects and interior designers
+Arts & Entertainment,27-1;27-2,artists designers performers
+Aviation,53-2,air transportation
+Banking & Finance,13-2;43-3071,financial specialists and tellers
+Childcare,39-9011;25-2011,childcare workers and preschool teachers
+Civil Engineering,17-2051;17-3022,civil engineers and technicians
+Cleaning & Sanitation,37-2,building cleaning
+Community & Social Service,21-1,counselors and social workers
+Construction,47-,construction and extraction
+Customer Service,43-4051,customer service representatives
+Data & Analytics,15-2051;15-2041;15-2031,data scientists statisticians analysts
+Dental,29-1292;31-9091;29-2021,dentists and dental assistants
+Driving,53-3,motor vehicle operators
+Education & Instruction,25-,education
+Electrical Engineering,17-2071;17-2072;17-3023,electrical engineers and technicians
+Food Preparation & Service,35-,food preparation and serving
+Hospitality & Tourism,35-1;39-6;43-4081,hotel and travel
+Human Resources,13-107;11-312;43-4161,HR specialists and managers
+"IT Infrastructure, Operations & Support",15-123;15-124,support and network specialists
+IT Systems & Solutions,15-121,computer systems analysts
+Industrial Engineering,17-2112;17-2111,industrial engineers
+Installation & Maintenance,49-,installation maintenance repair
+Insurance,13-205;41-3021;43-9041,underwriters agents claims clerks
+Legal,23-,legal
+Loading & Stocking,53-7062;53-7065,laborers and stockers
+Logistic Support,43-5;13-1081,material recording and logisticians
+Management,11-1;11-9,general and other managers
+Marketing,13-1161;11-2021;27-3031,marketing specialists and managers
+Mechanical Engineering,17-2141;17-3027,mechanical engineers and technicians
+Media & Communications,27-3,media and communication workers
+Medical Information,29-9021;43-6013;29-2072,health information and medical records
+Medical Technician,29-20,health technologists and technicians
+Nursing,29-114;29-2061;31-1131,nurses and nursing assistants
+Personal Care & Home Health,31-1121;31-1122;39-9,home health and personal care
+Pharmacy,29-1051;29-2052,pharmacists and pharmacy technicians
+Physicians & Surgeons,29-12,physicians and surgeons
+Production & Manufacturing,51-,production
+Project Management,13-1082;11-9021,project management specialists
+Retail,41-2;41-1011,retail sales and supervisors
+Sales,41-3;41-4;11-2022,sales representatives and managers
+Scientific Research & Development,19-1;19-2;19-4,life and physical scientists
+Security & Public Safety,33-,protective service
+Social Science,19-3,social scientists
+Software Development,15-125,software developers and programmers
+Therapy,29-11;29-1127;29-1129,therapists
