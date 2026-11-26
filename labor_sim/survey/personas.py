@@ -37,15 +37,19 @@ class Persona:
 
 # Map from Pew codebook variable names to persona fields. Fill in from the
 # Wave 157 codebook; values are the labels pyreadstat returns.
+# The names below follow Pew's usual ATP naming (F_ = profile variables,
+# WEIGHT_W<wave>). They are best guesses: confirm each one in the Wave 157
+# codebook. The occupation/industry variable differs between surveys.
 PEW_COLUMNS = {
-    "age": "TODO_AGE",            # numeric age, or a category mapped to a midpoint below
-    "gender": "TODO_GENDER",
-    "education": "TODO_EDUC",
-    "income": "TODO_INCOME",
-    "occupation_group": "TODO_OCCUPATION",
-    "weight": "TODO_WEIGHT",
+    "age": "F_AGECAT",            # categories 18-29 / 30-49 / 50-64 / 65+, mapped to midpoints below
+    "gender": "F_GENDER",
+    "education": "F_EDUCCAT",
+    "income": "F_INC_TIER2",
+    "occupation_group": "TODO_OCCUPATION",   # find the job/industry item in the codebook
+    "weight": "WEIGHT_W157",
 }
-AGE_MIDPOINTS = {"18-29": 24, "30-49": 40, "50-64": 57, "65+": 70}
+AGE_MIDPOINTS = {"18-29": 24, "30-49": 40, "50-64": 57, "65+": 70,
+                 "Ages 18-29": 24, "30-49 years": 40, "50-64 years": 57, "65+ years": 70}
 
 
 def from_pew(df: pd.DataFrame, n: int, seed: int = 0, columns: dict | None = None) -> list[Persona]:

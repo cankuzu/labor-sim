@@ -96,42 +96,56 @@ def load_aioe(raw: Path) -> pd.DataFrame | None:
 
 
 def load_anthropic(raw: Path) -> pd.DataFrame | None:
-    """Usage share and automation share per SOC from the Anthropic Economic Index.
+    """Observed exposure and automation share per SOC from the Anthropic Economic Index
+    (huggingface.co/datasets/Anthropic/EconomicIndex, layout checked Nov 2026).
 
-    Uses the first public release layout (release_2025_02_10):
-      onet_task_mappings.csv                 task_name, pct
-      automation_vs_augmentation_by_task.csv task_name + interaction-pattern shares
-      onet_task_statements.csv               O*NET-SOC Code, Task
-    Later releases add more files; check data/raw/anthropic/ and adapt the
-    file names below if the layout differs.
+    exposure_anthropic  labor_market_impacts/job_exposure.csv: occ_code, title, observed_exposure
+                        = the "observed exposure" of Massenkoff & McCrory (2026), 756 occupations.
+                        Fallback: task usage shares from release_2025_02_10/onet_task_mappings.csv.
+    automation_share    release_2025_03_27/automation_vs_augmentation_by_task.csv
+                        (task_name, feedback_loop, directive, task_iteration, validation, learning, filtered)
+                        joined to that release's onet_task_statements.csv.
+                        automation = directive + feedback_loop; augmentation = task_iteration + validation + learning.
     """
     base = raw / "anthropic"
     if not base.exists():
         return None
 
-    def find(name: str) -> Path | None:
+    def find(name: str, prefer: str | None = None) -> Path | None:
         hits = sorted(base.rglob(name))
+        if prefer:
+            hits = sorted(hits, key=lambda p: prefer not in str(p))
         return hits[0] if hits else None
 
-    tasks_p, auto_p, stmt_p = (find("onet_task_mappings.csv"),
-                               find("automation_vs_augmentation_by_task.csv"),
-                               find("onet_task_statements.csv"))
-    if not (tasks_p and stmt_p):
+    out = None
+    exp_p = find("job_exposure.csv")
+    if exp_p:
+        e = pd.read_csv(exp_p)
+        out = pd.DataFrame({"soc": e["occ_code"].map(soc6), "exposure_anthropic": e["observed_exposure"]})
+        out = out.groupby("soc", as_index=False)["exposure_anthropic"].mean()
+
+    stmt_p = find("onet_task_statements.csv", prefer="release_2025_03_27")
+    stmt = None
+    if stmt_p:
+        stmt = pd.read_csv(stmt_p)
+        stmt["task_key"] = stmt["Task"].str.lower().str.strip()
+        stmt["soc"] = stmt["O*NET-SOC Code"].map(soc6)
+
+    tasks_p = find("onet_task_mappings.csv")
+    if out is None and tasks_p and stmt is not None:
+        tasks = pd.read_csv(tasks_p)
+        tasks["task_key"] = tasks["task_name"].str.lower().str.strip()
+        # a task can appear in several occupations: split its usage share evenly
+        stmt["n_occ"] = stmt.groupby("task_key")["soc"].transform("nunique")
+        m = stmt.merge(tasks[["task_key", "pct"]], on="task_key", how="inner")
+        m["pct_share"] = m["pct"] / m["n_occ"]
+        out = m.groupby("soc")["pct_share"].sum().rename("exposure_anthropic").reset_index()
+    if out is None:
         print("  ! Anthropic files not in the expected layout; skipping (see load_anthropic docstring)")
         return None
 
-    tasks = pd.read_csv(tasks_p)
-    tasks["task_key"] = tasks["task_name"].str.lower().str.strip()
-    stmt = pd.read_csv(stmt_p)
-    stmt["task_key"] = stmt["Task"].str.lower().str.strip()
-    stmt["soc"] = stmt["O*NET-SOC Code"].map(soc6)
-    # a task can appear in several occupations: split its usage share evenly
-    stmt["n_occ"] = stmt.groupby("task_key")["soc"].transform("nunique")
-    m = stmt.merge(tasks[["task_key", "pct"]], on="task_key", how="inner")
-    m["pct_share"] = m["pct"] / m["n_occ"]
-    out = m.groupby("soc")["pct_share"].sum().rename("exposure_anthropic").reset_index()
-
-    if auto_p:
+    auto_p = find("automation_vs_augmentation_by_task.csv")
+    if auto_p and stmt is not None:
         a = pd.read_csv(auto_p)
         a["task_key"] = a["task_name"].str.lower().str.strip()
         auto_cols = [c for c in ["directive", "feedback_loop"] if c in a]

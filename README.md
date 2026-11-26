@@ -35,7 +35,9 @@ uvicorn api.main:app --reload        # then open http://localhost:8000/docs
 
 ## Running with real models
 
-1. Start an Ollama server (your PC, or Colab/Kaggle with `notebooks/colab_setup.ipynb`).
+1. Start an Ollama server: on your PC, or on a free Colab GPU with
+   [notebooks/colab_setup.ipynb](https://colab.research.google.com/github/cankuzu/labor-sim/blob/main/notebooks/colab_setup.ipynb)
+   (opens directly in Colab; it clones this repo, installs Ollama and runs a speed test).
 2. Pull the four models and check their tags in `config/default.yaml`
    (`ollama pull llama3.1:8b-instruct-q4_K_M`, ...). If a base model has no Ollama tag,
    import its GGUF from Hugging Face with a `Modelfile`.
@@ -51,10 +53,12 @@ uvicorn api.main:app --reload        # then open http://localhost:8000/docs
 
 ## Before results count
 
-- [ ] Pew questions in `labor_sim/survey/questions.yaml` replaced with the exact Wave 157 wording (`verified: true`)
-- [ ] `PEW_COLUMNS` set from the Wave 157 codebook
+- [x] Pew questions filled in from the Wave 157 topline (AIWRKFEEL_a-d, AIWRKOPPO, CHATWRK, AIWRKDONE2)
+- [ ] ...then compared once with the PDF and codebook by a person, and `verified: true` set
+- [ ] `PEW_COLUMNS` confirmed in the Wave 157 codebook (current values are Pew's usual names; occupation item still TODO)
 - [ ] OEWS May 2022–2025 downloaded (the 2021 file is a development stand-in)
-- [ ] Anthropic Economic Index downloaded and `load_anthropic()` checked against its current file layout
+- [x] `load_anthropic()` matched to the current Hugging Face layout (uses `labor_market_impacts/job_exposure.csv`)
+- [ ] Anthropic Economic Index downloaded (`python scripts/download_data.py --only anthropic`)
 - [ ] SOC 2010→2018 crosswalk downloaded so AIOE matches all occupations
 - [ ] IPUMS CPS extract and Census→SOC crosswalk in place, `build_targets.py` re-run
 - [ ] `indeed_sector_map.csv` reviewed (sector → SOC prefixes is a manual mapping)

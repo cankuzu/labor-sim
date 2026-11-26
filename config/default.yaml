@@ -44,7 +44,7 @@ simulation:
   n_workers: 500
   start_quarter: "2022Q4"
   end_quarter: "2025Q4"
-  exposure_source: anthropic       # anthropic | eloundou | microsoft | aioe
+  exposure_source: anthropic       # anthropic (observed exposure, main) | eloundou | microsoft | aioe
   seed: 1
   quarterly_separation_rate: 0.035  # baseline churn per quarter
   quarterly_entry_rate: 0.012       # new 22-year-old entrants per quarter, share of workforce

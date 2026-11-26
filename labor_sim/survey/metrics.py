@@ -47,14 +47,31 @@ def jsd_table(agent: pd.DataFrame, human: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def mean_valence(dist: pd.DataFrame, valence: dict[str, float]) -> pd.Series:
-    d = dist.assign(v=dist["option_label"].map(valence) * dist["share"])
+def valence_map(questions: list[dict]) -> dict[tuple[str, str], float]:
+    """(question_id, option_label) -> valence, for questions whose options all carry a valence.
+
+    Keyed by question because the same label ("Yes") means opposite things for
+    "hopeful" and "worried"."""
+    out = {}
+    for q in questions:
+        vals = [o.get("valence") for o in q["options"]]
+        if all(v is not None for v in vals):
+            out.update({(q["id"], o["label"]): float(o["valence"]) for o in q["options"]})
+    return out
+
+
+def mean_valence(dist: pd.DataFrame, valence: dict[tuple[str, str], float]) -> pd.Series:
+    keys = list(zip(dist["question_id"], dist["option_label"]))
+    d = dist.assign(v=[valence.get(k) for k in keys])
+    d = d[d["question_id"].isin({q for q, _ in valence})]
+    d["v"] = d["v"].astype(float) * d["share"]
     by = [c for c in ["model", "condition", "question_id", "subgroup_var", "subgroup_value"] if c in d]
     return d.groupby(by)["v"].sum()
 
 
-def optimism_gap(agent: pd.DataFrame, human: pd.DataFrame, valence: dict[str, float]) -> pd.DataFrame:
-    """Agent mean valence minus human mean valence (>0 = agents more positive than people)."""
+def optimism_gap(agent: pd.DataFrame, human: pd.DataFrame, valence: dict[tuple[str, str], float]) -> pd.DataFrame:
+    """Agent mean valence minus human mean valence (>0 = agents more positive than people).
+    Build `valence` with valence_map(questions)."""
     a = mean_valence(agent, valence).rename("agent").reset_index()
     h = mean_valence(human, valence).rename("human").reset_index()
     m = a.merge(h, on=["question_id", "subgroup_var", "subgroup_value"])

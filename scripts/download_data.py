@@ -133,7 +133,13 @@ def download_anthropic() -> None:
               f"https://huggingface.co/datasets/{ANTHROPIC_REPO}")
         return
     out_dir = RAW / "anthropic"
-    snapshot_download(repo_id=ANTHROPIC_REPO, repo_type="dataset", local_dir=out_dir)
+    # only the files the project uses (the full repository is much larger)
+    snapshot_download(repo_id=ANTHROPIC_REPO, repo_type="dataset", local_dir=out_dir,
+                      allow_patterns=["README.md", "labor_market_impacts/*",
+                                      "release_2025_02_10/onet_task_mappings.csv",
+                                      "release_2025_03_27/automation_vs_augmentation_by_task.csv",
+                                      "release_2025_03_27/onet_task_statements.csv",
+                                      "release_2025_03_27/task_pct_v2.csv"])
     for p in out_dir.rglob("*.csv"):
         _log(f"anthropic/{p.relative_to(out_dir)}", f"hf://{ANTHROPIC_REPO}", p)
 

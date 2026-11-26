@@ -56,6 +56,19 @@ def test_survey_reproducible():
     assert a == b
 
 
+def test_optimism_gap_uses_question_specific_valence():
+    from labor_sim.survey import metrics as M
+    qs = load_questions(resolve("labor_sim/survey/questions.yaml"))
+    val = M.valence_map(qs)
+    assert val[("feel_hopeful", "Yes")] == 1 and val[("feel_worried", "Yes")] == -1
+    assert not any(q == "chatbot_use" for q, _ in val)
+    human = pd.DataFrame({"question_id": ["feel_worried"] * 2, "subgroup_var": "all", "subgroup_value": "all",
+                          "option_label": ["Yes", "No"], "share": [0.6, 0.4]})
+    agent = human.assign(model="m", condition="chat", share=[0.2, 0.8])
+    gap = M.optimism_gap(agent, human, val)
+    assert abs(gap["gap"].iloc[0] - 0.4) < 1e-9   # agents worry less -> positive gap
+
+
 def test_rule_simulation_runs(occ):
     res = Simulation(occ, SimConfig(n_workers=300, seed=1)).run()
     assert res.status == "finished" and len(res.rounds) == 13
