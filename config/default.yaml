@@ -39,6 +39,7 @@ survey:
   n_personas: 500
   seeds: [1, 2, 3]
   subgroups: [age_group, education, occupation_group]
+  shuffle_options: true      # per-persona option order (nominal: shuffled, ordinal: maybe reversed)
 
 # ---------------------------------------------------------------------------
 # Experiment 2: labor market simulation

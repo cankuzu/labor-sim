@@ -176,3 +176,46 @@ def test_pew_human_shares():
     assert set(h[h.question_id == "feel_worried"]["option_label"]) <= {"Yes", "No"}
     assert "None" in set(h[h.question_id == "done"]["option_label"])
     assert "Refused" not in set(h[h.subgroup_var == "age_group"]["subgroup_value"])
+
+
+def test_option_order_and_mapping():
+    from labor_sim.survey.runner import ask, option_order
+    q = {"id": "q", "text": "?", "options": [{"label": "More"}, {"label": "Fewer"}, {"label": "Same"},
+                                            {"label": "Not sure", "fixed": True}]}
+    orders = {tuple(option_order(q, s)) for s in range(40)}
+    assert len(orders) > 1 and all(o[-1] == 3 for o in orders)
+    ordq = dict(q, order="ordinal")
+    assert {tuple(option_order(ordq, s)) for s in range(40)} == {(0, 1, 2, 3), (2, 1, 0, 3)}
+
+    class Picker:  # always answers the option whose text is "Fewer", wherever it is shown
+        name, mode = "picker", "chat"
+        def generate(self, prompt, system=None, **kw):
+            line = next(l for l in prompt.splitlines() if l.endswith(") Fewer"))
+            return '{"answer": "%s", "reason": "x"}' % line[0]
+    from labor_sim.survey.personas import synthetic
+    p = synthetic(1)[0]
+    for s in range(10):
+        r = ask(Picker(), p, q, seed=s, shuffle=True)
+        assert r["option_label"] == "Fewer"
+
+
+def test_survey_resume_skips_done(tmp_path):
+    from labor_sim.survey.runner import load_done, load_questions, run_survey
+    from labor_sim.survey.personas import synthetic
+    qs = load_questions("labor_sim/survey/questions.yaml")
+    ps = synthetic(3, seed=1)
+    log = tmp_path / "answers.jsonl"
+    calls = {"n": 0}
+    base = MockClient(name="m")
+    class Counting:
+        name, mode = "m", "chat"
+        def generate(self, *a, **k):
+            calls["n"] += 1
+            return base.generate(*a, **k)
+    first = run_survey(Counting(), ps[:2], qs, seed=1, log_path=log, condition="m", shuffle=True)
+    n1 = calls["n"]
+    done = load_done(log)
+    again = run_survey(Counting(), ps, qs, seed=1, log_path=log, condition="m", shuffle=True, done=done)
+    assert calls["n"] - n1 == len(qs)          # only the new persona was asked
+    assert len(again) == 3 * len(qs)
+    assert again.iloc[: len(first)]["option_label"].tolist() == first["option_label"].tolist()

@@ -15,6 +15,9 @@
 #   currently done with AI.
 # - Options are listed in the original Pew order. `valence` drives the optimism-gap
 #   metric: +1 positive about AI at work, -1 negative, 0 neutral, null = not used.
+# - Each persona sees the options in its own order (survey.shuffle_options): nominal items
+#   are shuffled, `order: ordinal` scales are shown as written or reversed, and
+#   `fixed: true` options (Not sure) stay last. The chosen order is logged as option_order.
 
 questions:
   - id: feel_hopeful
@@ -53,10 +56,11 @@ questions:
       - {label: "More job opportunities for you", valence: 1}
       - {label: "Fewer job opportunities for you", valence: -1}
       - {label: "Will not make much difference", valence: 0}
-      - {label: "Not sure", valence: 0}
+      - {label: "Not sure", valence: 0, fixed: true}
   - id: chatbot_use
     pew_var: CHATWRK_W157
     verified: true
+    order: ordinal
     text: "How often do you use artificial intelligence chatbots for tasks at work?"
     options:
       - {label: "Every day", valence: null}
@@ -67,6 +71,7 @@ questions:
   - id: work_done_with_ai
     pew_var: AIWRKDONE2_W157
     verified: true
+    order: ordinal
     text: "Regardless of how much of your work is currently done with AI, how much of what you do in your job do you think can be done with AI?"
     options:
       - {label: "All", valence: null}
@@ -74,4 +79,4 @@ questions:
       - {label: "Some", valence: null}
       - {label: "Not much", valence: null}
       - {label: "None", valence: null}   # code 5; unlabelled in the codebook, "None" in the topline
-      - {label: "Not sure", valence: null}
+      - {label: "Not sure", valence: null, fixed: true}

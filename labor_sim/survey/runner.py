@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -35,7 +36,24 @@ def _safe(fn, *args, **kwargs) -> str:
         return f"<error: {type(e).__name__}>"
 
 
-def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: int = 2) -> dict:
+def option_order(q: dict, seed: int) -> list[int]:
+    """Order in which this persona sees the options (fixes position bias, e.g. base models
+    favouring option A). Nominal questions are shuffled, ordinal scales (`order: ordinal`)
+    are shown either as written or reversed, and options with `fixed: true` (Not sure) stay last."""
+    idx = [i for i, o in enumerate(q["options"]) if not o.get("fixed")]
+    tail = [i for i, o in enumerate(q["options"]) if o.get("fixed")]
+    rng = random.Random(seed)
+    if q.get("order") == "ordinal":
+        idx = idx[::-1] if rng.random() < 0.5 else idx
+    else:
+        rng.shuffle(idx)
+    return idx + tail
+
+
+def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: int = 2,
+        shuffle: bool = False) -> dict:
+    order = option_order(q, seed) if shuffle else list(range(len(q["options"])))
+    q = dict(q, options=[q["options"][i] for i in order])
     valid = letters(len(q["options"]))
     raw, answer, reason = "", None, None
     for attempt in range(max_retries + 1):
@@ -54,24 +72,29 @@ def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: in
     opt = q["options"][valid.index(answer)] if answer else None
     return {"question_id": q["id"], "answer": answer, "option_label": opt["label"] if opt else None,
             "valence": opt.get("valence") if opt else None, "reason": reason, "raw": raw,
-            "valid": answer is not None, "attempts": attempt + 1}
+            "valid": answer is not None, "attempts": attempt + 1, "option_order": ",".join(map(str, order))}
 
 
 def run_survey(client: LLMClient, personas: Iterable[Persona], questions: list[dict], seed: int,
                log_path: Path | None = None, condition: str | None = None,
                on_progress: Callable[[int], None] | None = None, max_retries: int = 2,
-               parallel: int = 1) -> pd.DataFrame:
+               parallel: int = 1, shuffle: bool = False, done: dict | None = None) -> pd.DataFrame:
     """Every persona answers every question. `parallel` > 1 sends that many requests at once;
     each answer depends only on its own (persona, question, seed), so the result is the same."""
     personas = list(personas)
+    cond = condition or client.mode
+    done = done or {}
     jobs = [(p, q) for p in personas for q in questions]
+    kept = [done[k] for p, q in jobs if (k := (cond, seed, p.persona_id, q["id"])) in done]
+    jobs = [(p, q) for p, q in jobs if (cond, seed, p.persona_id, q["id"]) not in done]
 
     def one(job: tuple[Persona, dict]) -> dict:
         p, q = job
-        return {"model": client.name, "condition": condition or client.mode, "seed": seed, **p.to_dict(),
-                **ask(client, p, q, seed=stable_seed(p.persona_id, q["id"], seed), max_retries=max_retries)}
+        return {"model": client.name, "condition": cond, "seed": seed, **p.to_dict(),
+                **ask(client, p, q, seed=stable_seed(p.persona_id, q["id"], seed), max_retries=max_retries,
+                      shuffle=shuffle)}
 
-    rows: list[dict] = []
+    rows: list[dict] = list(kept)
     fh = log_path.open("a") if log_path else None
     try:
         if parallel > 1:
@@ -96,3 +119,18 @@ def run_survey(client: LLMClient, personas: Iterable[Persona], questions: list[d
         if fh:
             fh.close()
     return pd.DataFrame(rows)
+
+
+def load_done(log_path: Path) -> dict:
+    """Answers already in a JSONL log, keyed by (condition, seed, persona, question), for --resume.
+    Only valid answers count as done, so failed ones are asked again."""
+    done = {}
+    if log_path.exists():
+        for line in log_path.read_text().splitlines():
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:  # a line cut off when the session died
+                continue
+            if r.get("valid"):
+                done[(r["condition"], r["seed"], r["persona_id"], r["question_id"])] = r
+    return done
