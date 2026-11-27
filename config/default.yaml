@@ -21,7 +21,7 @@ llm:
   max_retries: 2           # retries when the answer is not valid JSON
   temperature: 0.7
   max_tokens: 160
-  parallel_requests: 4     # concurrent worker requests; start Ollama with OLLAMA_NUM_PARALLEL >= this
+  parallel_requests: 8     # concurrent worker requests; start Ollama with OLLAMA_NUM_PARALLEL >= this
   models:
     llama-instruct: {tag: "llama3.1:8b-instruct-q4_K_M", mode: chat}
     llama-base:     {tag: "llama3.1:8b-text-q4_K_M",     mode: completion}

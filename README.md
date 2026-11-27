@@ -50,6 +50,9 @@ uvicorn api.main:app --reload        # then open http://localhost:8000/docs
 4. Pilot first: `python scripts/run_simulation.py --policy llm --model llama-instruct --workers 100`
    and time it. A full run is roughly (workers + ~90 employer cells) × 13 quarters calls,
    about 14,000 for 1,000 workers. Raise `llm_worker_decisions_every` to save time.
+   Measured on a Colab T4 (Llama-3.1-8B instruct q4, `python scripts/speed_test.py`): an employer call takes
+   2.6 s, a worker call 1.56 s alone and 0.63 s with 8 concurrent requests (`llm.parallel_requests`, Ollama needs
+   `OLLAMA_NUM_PARALLEL=8`). One 13-quarter run: ~1.1 h with 100 workers, ~2 h with 500, ~3.1 h with 1,000.
 
 ## Before results count
 
