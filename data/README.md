@@ -42,7 +42,9 @@ file by hand and put it in the folder shown above.
 3. Variables: `YEAR, MONTH, CPSIDP, AGE, EMPSTAT, OCC, WTFINL`.
 4. Download as CSV and save as `data/raw/ipums/cps.csv` (or `cps.csv.gz`).
 5. CPS uses Census occupation codes. Save the Census → SOC list as
-   `data/raw/crosswalk/census_occ_to_soc.csv` with columns `census_occ,soc`
+   `data/raw/crosswalk/census_occ_to_soc.csv` with columns `census_occ,soc`:
+   put the Census workbook `2018-occupation-code-list-and-crosswalk.xlsx` in `data/raw/crosswalk/`
+   and run `python scripts/build_census_crosswalk.py`
    (from the Census Bureau's occupation code list for the 2018 codes).
 
 ## 3. Build the processed tables
