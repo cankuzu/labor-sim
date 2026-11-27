@@ -106,9 +106,11 @@ WORKER_SYSTEM = ("You are a US worker making a career decision this quarter. Dec
 class LLMPolicy(RulePolicy):
     """LLM decisions; inherits the rule hiring weights and only replaces the choices."""
 
-    def __init__(self, cfg: dict, rng: random.Random, client: LLMClient, max_retries: int = 2):
+    def __init__(self, cfg: dict, rng: random.Random, client: LLMClient, max_retries: int = 2,
+                 parallel: int = 1):
         super().__init__(cfg, rng)
         self.client, self.max_retries = client, max_retries
+        self.parallel = max(1, int(parallel))  # concurrent requests for worker decisions
         self.name = f"llm:{client.name}"
 
     def _ask(self, system: str, prompt: str, seed: int) -> tuple[dict | None, str]:
@@ -159,6 +161,36 @@ class LLMPolicy(RulePolicy):
         return EmployerDecision(*counts, layoffs, prefer, str(obj.get("reason", ""))[:300], raw)
 
     def worker(self, w: Worker, cap: float, employer_adopted: bool, quarter: str) -> WorkerDecision:
+        return self.workers_batch([(w, cap, employer_adopted, quarter)])[0]
+
+    def workers_batch(self, items: list[tuple[Worker, float, bool, str]]) -> list[WorkerDecision]:
+        """Decide for many workers at once, sending up to `parallel` requests concurrently.
+
+        Seeds are drawn from the policy RNG in list order before any request is sent and
+        rule fallbacks run afterwards in list order, so the result does not depend on
+        `parallel` (Ollama answers are fixed by the seed).
+        """
+        prompts = [self._worker_prompt(*it) for it in items]
+        seeds = [self.rng.randrange(10**6) for _ in items]
+        jobs = list(zip(prompts, seeds))
+        if self.parallel > 1 and len(jobs) > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(self.parallel) as pool:
+                answers = list(pool.map(lambda j: self._ask(WORKER_SYSTEM, j[0][0], j[1]), jobs))
+        else:
+            answers = [self._ask(WORKER_SYSTEM, p, s) for (p, _), s in jobs]
+        out = []
+        for (w, cap, employer_adopted, quarter), (_, actions), (obj, raw) in zip(items, prompts, answers):
+            action = str((obj or {}).get("action", "")).strip().lower()
+            if action not in actions:
+                d = super().worker(w, cap, employer_adopted, quarter)
+                d.valid, d.raw = False, raw
+            else:
+                d = WorkerDecision(action, str(obj.get("reason", ""))[:300], raw)
+            out.append(d)
+        return out
+
+    def _worker_prompt(self, w: Worker, cap: float, employer_adopted: bool, quarter: str) -> tuple[str, tuple]:
         actions = EMPLOYED_ACTIONS if w.employed else UNEMPLOYED_ACTIONS
         status = ("employed" if w.employed else f"unemployed for {w.quarters_unemployed} quarter(s)")
         prompt = (
@@ -171,13 +203,7 @@ class LLMPolicy(RulePolicy):
             f"What do you do this quarter? choose one of: {' | '.join(actions)}\n"
             'JSON: {"action": "<one of the options>", "reason": "<one sentence>"}'
         )
-        obj, raw = self._ask(WORKER_SYSTEM, prompt, seed=self.rng.randrange(10**6))
-        action = str((obj or {}).get("action", "")).strip().lower()
-        if action not in actions:
-            d = super().worker(w, cap, employer_adopted, quarter)
-            d.valid, d.raw = False, raw
-            return d
-        return WorkerDecision(action, str(obj.get("reason", ""))[:300], raw)
+        return prompt, actions
 
     def candidate_weight(self, w: Worker, e: Employer, cap: float, prefer: str = "no_preference") -> float:
         base = 1 + 0.3 * w.upskilled

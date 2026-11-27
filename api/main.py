@@ -124,7 +124,7 @@ def _simulation_job(rid: str, req: SimulationRequest) -> None:
         c = cfg()
         sc = SimConfig.from_dict(c["simulation"] | req.model_dump(exclude={"policy", "model"}))
         rng = random.Random(sc.seed)
-        policy = (LLMPolicy(asdict(sc), rng, make_client(req.model, c), c["llm"]["max_retries"])
+        policy = (LLMPolicy(asdict(sc), rng, make_client(req.model, c), c["llm"]["max_retries"], c["llm"].get("parallel_requests", 1))
                   if req.policy == "llm" else RulePolicy(asdict(sc), rng))
         out = resolve(c["paths"]["results"]) / "simulations" / rid
         sim = Simulation(occupations(), sc, policy=policy, run_id=rid, out_dir=out)

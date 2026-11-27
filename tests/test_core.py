@@ -100,3 +100,14 @@ def test_no_ai_keeps_employment_flat(occ):
              for s in range(3)]
     drift = sum(r.rounds[-1]["employment_rate"] - r.rounds[0]["employment_rate"] for r in rates) / 3
     assert abs(drift) < 0.03
+
+
+def test_parallel_worker_calls_match_sequential(occ):
+    """Concurrent worker requests must give the same run as one-at-a-time requests."""
+    runs = []
+    for parallel in (1, 4):
+        sc = SimConfig(n_workers=120, seed=3)
+        pol = LLMPolicy(asdict(sc), random.Random(3), MockClient("mock", "chat"), parallel=parallel)
+        res = Simulation(occ, sc, policy=pol).run()
+        runs.append([r["employment_rate"] for r in res.rounds])
+    assert runs[0] == runs[1]

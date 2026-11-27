@@ -48,7 +48,7 @@ def main(argv=None) -> int:
             print(f"exposure '{sc.exposure_source}' not available yet; falling back to 'eloundou'")
             sc.exposure_source = "eloundou"
         rng = random.Random(seed)
-        policy = (LLMPolicy(asdict(sc), rng, make_client(a.model, cfg), cfg["llm"]["max_retries"])
+        policy = (LLMPolicy(asdict(sc), rng, make_client(a.model, cfg), cfg["llm"]["max_retries"], cfg["llm"].get("parallel_requests", 1))
                   if a.policy == "llm" else RulePolicy(asdict(sc), rng))
         tag = a.model if a.policy == "llm" else "rule"
         run_id = f"{time.strftime('%Y%m%d-%H%M%S')}_{tag}_{sc.exposure_source}_s{seed}"

@@ -15,7 +15,7 @@ if ! command -v ollama >/dev/null; then
   curl -fsSL https://ollama.com/install.sh | sh >/tmp/ollama_install.log 2>&1
 fi
 if ! curl -s localhost:11434/api/version >/dev/null; then
-  setsid nohup ollama serve >/tmp/ollama.log 2>&1 < /dev/null &
+  OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-8} setsid nohup ollama serve >/tmp/ollama.log 2>&1 < /dev/null &
   for _ in $(seq 30); do curl -s localhost:11434/api/version >/dev/null && break; sleep 1; done
 fi
 curl -s localhost:11434/api/version; echo

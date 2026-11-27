@@ -254,9 +254,17 @@ class Simulation:
         # worker decisions
         ask_llm = t % max(1, c.llm_worker_decisions_every) == 0
         searching: list[Worker] = []
-        for w in list(self.workers):
+        current = list(self.workers)
+        batch = None
+        if ask_llm and hasattr(self.policy, "workers_batch"):
+            # LLM workers decide on this quarter's state; requests can run concurrently
+            batch = self.policy.workers_batch([(w, caps[w.cell], self.employers[w.cell].adopted_ai, q)
+                                               for w in current])
+        for i, w in enumerate(current):
             e = self.employers[w.cell]
-            if ask_llm or not hasattr(self.policy, "client"):
+            if batch is not None:
+                wd = batch[i]
+            elif ask_llm or not hasattr(self.policy, "client"):
                 wd = self.policy.worker(w, caps[w.cell], e.adopted_ai, q)
             else:
                 wd = RulePolicy.worker(self.policy, w, caps[w.cell], e.adopted_ai, q)
