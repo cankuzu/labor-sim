@@ -29,41 +29,67 @@ class Persona:
     def backstory(self) -> str:
         return (f"I am a {self.age}-year-old {self.gender.lower()} living in the United States. "
                 f"My highest level of education is {self.education.lower()}, my yearly household income is "
-                f"{self.income.lower()}, and I work in {self.occupation_group.lower()}.")
+                f"{self.income.lower()}, and I work in {_field(self.occupation_group)}.")
 
     def to_dict(self) -> dict:
         return asdict(self) | {"age_group": self.age_group}
 
 
-# Map from Pew codebook variable names to persona fields. Fill in from the
-# Wave 157 codebook; values are the labels pyreadstat returns.
-# The names below follow Pew's usual ATP naming (F_ = profile variables,
-# WEIGHT_W<wave>). They are best guesses: confirm each one in the Wave 157
-# codebook. The occupation/industry variable differs between surveys.
+def _field(industry: str) -> str:
+    return "a field not listed in the survey" if industry.strip().lower() == "other" else industry.lower()
+
+
+# Pew Wave 157 variables (checked against "ATP W157 Codebook.xlsx"). Values are the
+# labels pyreadstat returns with apply_value_formats=True. Pew asks no occupation
+# question in this wave, so the persona's field of work is the industry item.
 PEW_COLUMNS = {
-    "age": "F_AGECAT",            # categories 18-29 / 30-49 / 50-64 / 65+, mapped to midpoints below
-    "gender": "F_GENDER",
-    "education": "F_EDUCCAT",
-    "income": "F_INC_TIER2",
-    "occupation_group": "TODO_OCCUPATION",   # find the job/industry item in the codebook
+    "age": "F_AGECAT",                       # 18-29 / 30-49 / 50-64 / 65+
+    "gender": "F_GENDER",                    # A man / A woman / In some other way
+    "education": "F_EDUCCAT2",               # 6 levels, Less than high school ... Postgraduate
+    "income": "F_INC_SDT1",                  # family income, 9 brackets
+    "occupation_group": "INDUSTRYCOMBO_W157",
     "weight": "WEIGHT_W157",
 }
-AGE_MIDPOINTS = {"18-29": 24, "30-49": 40, "50-64": 57, "65+": 70,
-                 "Ages 18-29": 24, "30-49 years": 40, "50-64 years": 57, "65+ years": 70}
+# Readme: published results exclude workers with several jobs and no primary one.
+PEW_EXCLUDE = {"JOBNUM_W157": "More than one and do not consider any of them my primary job"}
+AGE_RANGES = {"18-29": (18, 29), "30-49": (30, 49), "50-64": (50, 64), "65+": (65, 75)}
+GENDER_WORDS = {"A man": "man", "A woman": "woman", "In some other way": "person"}
 
 
-def from_pew(df: pd.DataFrame, n: int, seed: int = 0, columns: dict | None = None) -> list[Persona]:
+def is_missing(v: object) -> bool:
+    """Pew codes 99 as 'Refused' / "Don't know/Refused/Web blank"."""
+    return v is None or (isinstance(v, float) and np.isnan(v)) or "refused" in str(v).lower()
+
+
+def pew_eligible(df: pd.DataFrame, columns: dict | None = None) -> pd.DataFrame:
+    """Respondents usable as personas: no refused profile item, published-analysis filter applied."""
     cols = columns or PEW_COLUMNS
     missing = [v for v in cols.values() if v not in df.columns]
     if missing:
-        raise KeyError(f"Pew columns not found: {missing}. Set PEW_COLUMNS from the Wave 157 codebook.")
+        raise KeyError(f"Pew columns not found: {missing}. Check PEW_COLUMNS against the Wave 157 codebook.")
+    keep = pd.Series(True, index=df.index)
+    for var, bad in PEW_EXCLUDE.items():
+        if var in df:
+            keep &= df[var].astype(str) != bad
+    for k, var in cols.items():
+        if k != "weight":
+            keep &= ~df[var].map(is_missing)
+    return df[keep]
+
+
+def from_pew(df: pd.DataFrame, n: int, seed: int = 0, columns: dict | None = None) -> list[Persona]:
+    """Draw n respondents with probability proportional to WEIGHT_W157 and copy their profile.
+    Pew only gives an age bracket, so the exact age is drawn uniformly within it."""
+    cols = columns or PEW_COLUMNS
+    df = pew_eligible(df, cols)
     w = df[cols["weight"]].astype(float)
     sample = df.sample(n=n, replace=True, weights=w / w.sum(), random_state=seed)
+    rng = np.random.default_rng(seed)
     out = []
     for i, (_, r) in enumerate(sample.iterrows()):
-        age = r[cols["age"]]
-        age = AGE_MIDPOINTS.get(str(age), age)
-        out.append(Persona(f"pew-{seed}-{i}", int(age), str(r[cols["gender"]]), str(r[cols["education"]]),
+        lo, hi = AGE_RANGES.get(str(r[cols["age"]]), (30, 49))
+        gender = GENDER_WORDS.get(str(r[cols["gender"]]), str(r[cols["gender"]]))
+        out.append(Persona(f"pew-{seed}-{i}", int(rng.integers(lo, hi + 1)), gender, str(r[cols["education"]]),
                            str(r[cols["income"]]), str(r[cols["occupation_group"]])))
     return out
 

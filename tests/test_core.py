@@ -118,3 +118,53 @@ def test_parallel_survey_matches_sequential():
     a = run_survey(MockClient("m", "chat"), synthetic(8, 4), qs, 1)
     b = run_survey(MockClient("m", "chat"), synthetic(8, 4), qs, 1, parallel=4)
     assert a["answer"].tolist() == b["answer"].tolist() and a["persona_id"].tolist() == b["persona_id"].tolist()
+
+
+def _fake_pew(n=60, seed=0):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(seed)
+    pick = lambda opts: rng.choice(opts, n)
+    return pd.DataFrame({
+        "F_AGECAT": pick(["18-29", "30-49", "50-64", "65+", "Refused"]),
+        "F_GENDER": pick(["A man", "A woman"]),
+        "F_EDUCCAT2": pick(["High school graduate", "Postgraduate"]),
+        "F_INC_SDT1": pick(["Less than $30,000", "$100,000 or more"]),
+        "INDUSTRYCOMBO_W157": pick(["Education", "Other"]),
+        "JOBNUM_W157": pick(["One", "More than one and do not consider any of them my primary job"]),
+        "WEIGHT_W157": rng.uniform(0.2, 4.0, n),
+        "AIWRKFEEL_c_W157": pick(["Yes", "No", "Don't know/Refused/Web blank", None]),
+        "AIWRKDONE2_W157": pick(["All", "Some", 5.0, "Not sure"]),
+    })
+
+
+def test_pew_personas_skip_refused_and_multi_job():
+    from labor_sim.survey.personas import from_pew, pew_eligible
+    df = _fake_pew()
+    ok = pew_eligible(df)
+    assert not (ok["F_AGECAT"] == "Refused").any()
+    assert (ok["JOBNUM_W157"] == "One").all()
+    ps = from_pew(df, 30, seed=1)
+    assert all(18 <= p.age <= 75 and p.gender in ("man", "woman") for p in ps)
+    assert "a field not listed" in next(p.backstory() for p in ps if p.occupation_group == "Other")
+
+
+def test_pew_human_shares():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("an", Path(__file__).parent.parent / "scripts" / "analyze_survey.py")
+    an = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(an)
+    df = _fake_pew().assign(all="all")
+    for name, key in an.SUBGROUPS.items():
+        if key:
+            df[name] = df[an.PEW_COLUMNS[key]].astype(str)
+    qs = [{"id": "feel_worried", "pew_var": "AIWRKFEEL_c_W157", "options": [{"label": "Yes"}, {"label": "No"}]},
+          {"id": "done", "pew_var": "AIWRKDONE2_W157",
+           "options": [{"label": x} for x in ["All", "Most", "Some", "Not much", "None", "Not sure"]]}]
+    h = an.human_table(df, qs)
+    tot = h.groupby(["question_id", "subgroup_var", "subgroup_value"])["share"].sum()
+    assert (tot.round(6) == 1).all()
+    assert set(h[h.question_id == "feel_worried"]["option_label"]) <= {"Yes", "No"}
+    assert "None" in set(h[h.question_id == "done"]["option_label"])
+    assert "Refused" not in set(h[h.subgroup_var == "age_group"]["subgroup_value"])

@@ -2,8 +2,8 @@
 #
 # Wording, variable names and answer options are taken from the published topline:
 # https://www.pewresearch.org/wp-content/uploads/sites/20/2025/02/ST_2024.2.24_AI-workers_topline.pdf
-# They were extracted automatically; compare them once with the PDF and the
-# codebook, then set `verified: true` on each item.
+# Checked on 2026-11-27 against "ATP W157 Codebook.xlsx" (variable names, wording, answer
+# codes and their order); `pew_var` is the column name in the .sav/.csv file.
 #
 # Notes from the topline:
 # - AIWRKFEEL_a-d and AIWRKOPPO were asked only of workers who had heard or read
@@ -18,36 +18,36 @@
 
 questions:
   - id: feel_hopeful
-    pew_var: AIWRKFEEL_a
-    verified: false
+    pew_var: AIWRKFEEL_a_W157
+    verified: true
     text: "When you think about how AI may be used in the workplace in the future, do you generally feel hopeful?"
     options:
       - {label: "Yes", valence: 1}
       - {label: "No", valence: 0}
   - id: feel_excited
-    pew_var: AIWRKFEEL_b
-    verified: false
+    pew_var: AIWRKFEEL_b_W157
+    verified: true
     text: "When you think about how AI may be used in the workplace in the future, do you generally feel excited?"
     options:
       - {label: "Yes", valence: 1}
       - {label: "No", valence: 0}
   - id: feel_worried
-    pew_var: AIWRKFEEL_c
-    verified: false
+    pew_var: AIWRKFEEL_c_W157
+    verified: true
     text: "When you think about how AI may be used in the workplace in the future, do you generally feel worried?"
     options:
       - {label: "Yes", valence: -1}
       - {label: "No", valence: 0}
   - id: feel_overwhelmed
-    pew_var: AIWRKFEEL_d
-    verified: false
+    pew_var: AIWRKFEEL_d_W157
+    verified: true
     text: "When you think about how AI may be used in the workplace in the future, do you generally feel overwhelmed?"
     options:
       - {label: "Yes", valence: -1}
       - {label: "No", valence: 0}
   - id: job_opportunities
-    pew_var: AIWRKOPPO
-    verified: false
+    pew_var: AIWRKOPPO_W157
+    verified: true
     text: "In the long run, do you think the use of AI in the workplace will lead to..."
     options:
       - {label: "More job opportunities for you", valence: 1}
@@ -55,8 +55,8 @@ questions:
       - {label: "Will not make much difference", valence: 0}
       - {label: "Not sure", valence: 0}
   - id: chatbot_use
-    pew_var: CHATWRK
-    verified: false
+    pew_var: CHATWRK_W157
+    verified: true
     text: "How often do you use artificial intelligence chatbots for tasks at work?"
     options:
       - {label: "Every day", valence: null}
@@ -65,13 +65,13 @@ questions:
       - {label: "Rarely", valence: null}
       - {label: "Never", valence: null}
   - id: work_done_with_ai
-    pew_var: AIWRKDONE2
-    verified: false
+    pew_var: AIWRKDONE2_W157
+    verified: true
     text: "Regardless of how much of your work is currently done with AI, how much of what you do in your job do you think can be done with AI?"
     options:
       - {label: "All", valence: null}
       - {label: "Most", valence: null}
       - {label: "Some", valence: null}
       - {label: "Not much", valence: null}
-      - {label: "None", valence: null}
+      - {label: "None", valence: null}   # code 5; unlabelled in the codebook, "None" in the topline
       - {label: "Not sure", valence: null}
