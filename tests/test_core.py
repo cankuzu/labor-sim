@@ -219,3 +219,11 @@ def test_survey_resume_skips_done(tmp_path):
     assert calls["n"] - n1 == len(qs)          # only the new persona was asked
     assert len(again) == 3 * len(qs)
     assert again.iloc[: len(first)]["option_label"].tolist() == first["option_label"].tolist()
+
+
+def test_answer_none_survives_csv(tmp_path):
+    import pandas as pd
+    p = tmp_path / "a.csv"
+    pd.DataFrame({"option_label": ["None", "Some", None]}).to_csv(p, index=False)
+    d = pd.read_csv(p, keep_default_na=False, na_values=[""])
+    assert d["option_label"].tolist()[:2] == ["None", "Some"] and pd.isna(d["option_label"].iloc[2])

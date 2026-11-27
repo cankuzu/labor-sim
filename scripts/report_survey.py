@@ -87,8 +87,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     cfg = load_config()
     questions = load_questions(resolve(cfg["survey"]["questions_file"]))
-    ans = pd.read_csv(a.dir / "answers.csv")
-    hum = pd.read_csv(a.dir / "human_distribution.csv")
+    ans = pd.read_csv(a.dir / "answers.csv", keep_default_na=False, na_values=[""])  # "None" is an answer
+    hum = pd.read_csv(a.dir / "human_distribution.csv", keep_default_na=False, na_values=[""])
     out = a.dir / "report"
     out.mkdir(exist_ok=True)
 

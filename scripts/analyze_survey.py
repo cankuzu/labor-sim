@@ -94,7 +94,7 @@ def main(argv=None) -> int:
                                 key=lambda p: p.stat().st_mtime, default=None)  # newest run
     if not answers:
         sys.exit("No answers.csv found; run scripts/run_survey.py first.")
-    ans = pd.read_csv(answers).assign(all="all")
+    ans = pd.read_csv(answers, keep_default_na=False, na_values=[""]).assign(all="all")  # keep the answer "None"
     out = Path(answers).parent
     agent = pd.concat([M.agent_distribution(ans, sg) for sg in SUBGROUPS], ignore_index=True)
     jsd = M.jsd_table(agent, human)
