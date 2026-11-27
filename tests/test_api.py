@@ -60,7 +60,7 @@ def test_unknown_exposure_rejected(occ, monkeypatch):
 
 def test_survey_flow(occ, monkeypatch):
     c = _client(occ, monkeypatch)
-    rid = c.post("/experiments/survey", json={"model": "qwen-base", "n_personas": 5,
+    rid = c.post("/experiments/survey", json={"model": "mistral-base", "n_personas": 5,
                                               "synthetic_personas": True}).json()["id"]
     s = _wait(c, rid)
     assert s["status"] == "finished", s

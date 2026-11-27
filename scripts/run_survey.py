@@ -24,7 +24,7 @@ from labor_sim.survey.runner import load_questions, run_survey  # noqa: E402
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--models", nargs="+", default=["llama-instruct", "llama-base", "qwen-instruct", "qwen-base"])
+    ap.add_argument("--models", nargs="+", default=["llama-instruct", "llama-base", "mistral-instruct", "mistral-base", "qwen-instruct"])
     ap.add_argument("--n", type=int, help="personas per seed (default from config)")
     ap.add_argument("--seeds", type=int, nargs="+")
     ap.add_argument("--backend", choices=["mock", "ollama"])

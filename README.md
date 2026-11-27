@@ -38,9 +38,10 @@ uvicorn api.main:app --reload        # then open http://localhost:8000/docs
 1. Start an Ollama server: on your PC, or on a free Colab GPU with
    [notebooks/colab_setup.ipynb](https://colab.research.google.com/github/cankuzu/labor-sim/blob/main/notebooks/colab_setup.ipynb)
    (opens directly in Colab; it clones this repo, installs Ollama and runs a speed test).
-2. Pull the four models and check their tags in `config/default.yaml`
-   (`ollama pull llama3.1:8b-instruct-q4_K_M`, ...). If a base model has no Ollama tag,
-   import its GGUF from Hugging Face with a `Modelfile`.
+2. Pull the models: `bash scripts/colab_bootstrap.sh` does it, or by hand
+   `MODELS="llama3.1:8b-instruct-q4_K_M llama3.1:8b-text-q4_K_M mistral:7b-instruct-v0.2-q4_K_M mistral:7b-text-v0.2-q4_K_M qwen2.5:7b-instruct-q4_K_M"`
+   (tags in `config/default.yaml`, checked against the Ollama library in Nov 2026). Two base/instruct pairs
+   (Llama-3.1-8B, Mistral-7B v0.2); Qwen2.5-7B has no base tag in Ollama, so it is an extra instruct model only.
 3. Create `config/local.yaml`:
    ```yaml
    llm:

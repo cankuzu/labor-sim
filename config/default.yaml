@@ -26,7 +26,10 @@ llm:
     llama-instruct: {tag: "llama3.1:8b-instruct-q4_K_M", mode: chat}
     llama-base:     {tag: "llama3.1:8b-text-q4_K_M",     mode: completion}
     qwen-instruct:  {tag: "qwen2.5:7b-instruct-q4_K_M",  mode: chat}
-    qwen-base:      {tag: "qwen2.5:7b-text-q4_K_M",      mode: completion}
+    # Qwen2.5-7B has no base tag in the Ollama library (checked Nov 2026), so Qwen is used as an extra
+    # instruct model only. The second base/instruct pair is Mistral 7B v0.2 (both tags exist).
+    mistral-instruct: {tag: "mistral:7b-instruct-v0.2-q4_K_M", mode: chat}
+    mistral-base:     {tag: "mistral:7b-text-v0.2-q4_K_M",     mode: completion}
 
 # ---------------------------------------------------------------------------
 # Experiment 1: survey simulation

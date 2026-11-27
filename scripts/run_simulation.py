@@ -2,7 +2,7 @@
 
     python scripts/run_simulation.py --policy rule --seeds 1 2 3
     python scripts/run_simulation.py --policy llm --model llama-instruct --workers 100   # pilot
-    python scripts/run_simulation.py --policy llm --model qwen-base --exposure eloundou
+    python scripts/run_simulation.py --policy llm --model mistral-base --exposure eloundou
 
 Each run writes results/simulations/<run_id>/round_XX.json, summary.json,
 metrics.csv (age group x exposure quintile per quarter) and cells.csv.
