@@ -111,3 +111,10 @@ def test_parallel_worker_calls_match_sequential(occ):
         res = Simulation(occ, sc, policy=pol).run()
         runs.append([r["employment_rate"] for r in res.rounds])
     assert runs[0] == runs[1]
+
+
+def test_parallel_survey_matches_sequential():
+    qs = load_questions(resolve("labor_sim/survey/questions.yaml"))
+    a = run_survey(MockClient("m", "chat"), synthetic(8, 4), qs, 1)
+    b = run_survey(MockClient("m", "chat"), synthetic(8, 4), qs, 1, parallel=4)
+    assert a["answer"].tolist() == b["answer"].tolist() and a["persona_id"].tolist() == b["persona_id"].tolist()

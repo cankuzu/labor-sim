@@ -29,6 +29,7 @@ def main(argv=None) -> int:
     ap.add_argument("--seeds", type=int, nargs="+")
     ap.add_argument("--backend", choices=["mock", "ollama"])
     ap.add_argument("--pew", help="path to the Pew Wave 157 .sav file")
+    ap.add_argument("--parallel", type=int, help="concurrent requests (default: llm.parallel_requests)")
     ap.add_argument("--synthetic", action="store_true", help="use synthetic personas (dry runs only)")
     a = ap.parse_args(argv)
 
@@ -55,7 +56,8 @@ def main(argv=None) -> int:
             client = make_client(key, cfg)
             print(f"seed {seed} | {key} ({client.mode}) | {n} personas x {len(questions)} questions")
             frames.append(run_survey(client, personas, questions, seed, log_path=out / "answers.jsonl", condition=key,
-                                     max_retries=cfg["llm"]["max_retries"]))
+                                     max_retries=cfg["llm"]["max_retries"],
+                                     parallel=a.parallel or cfg["llm"].get("parallel_requests", 1)))
     df = pd.concat(frames)
     df.to_csv(out / "answers.csv", index=False)
     print(f"\nValid answer rate by model:\n{df.groupby('model')['valid'].mean().round(3)}\nSaved to {out}")

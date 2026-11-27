@@ -51,19 +51,39 @@ def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: in
 
 def run_survey(client: LLMClient, personas: Iterable[Persona], questions: list[dict], seed: int,
                log_path: Path | None = None, condition: str | None = None,
-               on_progress: Callable[[int], None] | None = None, max_retries: int = 2) -> pd.DataFrame:
-    rows = []
+               on_progress: Callable[[int], None] | None = None, max_retries: int = 2,
+               parallel: int = 1) -> pd.DataFrame:
+    """Every persona answers every question. `parallel` > 1 sends that many requests at once;
+    each answer depends only on its own (persona, question, seed), so the result is the same."""
+    personas = list(personas)
+    jobs = [(p, q) for p in personas for q in questions]
+
+    def one(job: tuple[Persona, dict]) -> dict:
+        p, q = job
+        return {"model": client.name, "condition": condition or client.mode, "seed": seed, **p.to_dict(),
+                **ask(client, p, q, seed=stable_seed(p.persona_id, q["id"], seed), max_retries=max_retries)}
+
+    rows: list[dict] = []
     fh = log_path.open("a") if log_path else None
     try:
-        for i, p in enumerate(personas):
-            for q in questions:
-                rec = {"model": client.name, "condition": condition or client.mode, "seed": seed,
-                       **p.to_dict(), **ask(client, p, q, seed=stable_seed(p.persona_id, q["id"], seed), max_retries=max_retries)}
+        if parallel > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(parallel) as pool:
+                results = pool.map(one, jobs)  # lazy, keeps job order
+                for i, rec in enumerate(results):
+                    rows.append(rec)
+                    if fh:
+                        fh.write(json.dumps(rec) + "\n")
+                    if on_progress and (i + 1) % len(questions) == 0:
+                        on_progress((i + 1) // len(questions))
+        else:
+            for i, job in enumerate(jobs):
+                rec = one(job)
                 rows.append(rec)
                 if fh:
                     fh.write(json.dumps(rec) + "\n")
-            if on_progress:
-                on_progress(i + 1)
+                if on_progress and (i + 1) % len(questions) == 0:
+                    on_progress((i + 1) // len(questions))
     finally:
         if fh:
             fh.close()
