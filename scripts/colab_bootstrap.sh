@@ -26,5 +26,11 @@ echo "== Python packages and data"
 pip install -q -r requirements.txt
 printf 'llm:\n  backend: ollama\n  ollama_url: http://localhost:11434\n' > config/local.yaml
 python scripts/download_data.py --only github crosswalk anthropic >/tmp/download.log 2>&1 || tail -5 /tmp/download.log
-python scripts/build_occupations.py | tail -4
+# data/processed/occupations.csv is committed (built on a laptop from OEWS 2022-2025, which BLS
+# does not serve to Colab). Rebuild only if it is missing, never overwrite it with the 2021 stand-in.
+if [ -f data/processed/occupations.csv ]; then
+  python -c "import pandas as pd; d=pd.read_csv('data/processed/occupations.csv'); print('occupations.csv:', d.shape, [c for c in d if c.startswith('emp_') and c[4:].isdigit()])"
+else
+  python scripts/build_occupations.py | tail -4
+fi
 echo "== ready"

@@ -55,3 +55,7 @@ python scripts/build_targets.py       # -> indeed_targets.csv, ipums_targets.csv
 `build_occupations.py` works with whatever is present. Until OEWS May 2022–2025 are
 downloaded it uses the May 2021 file from the Eloundou repo, which is fine for
 development but **not** for results.
+
+`data/processed/occupations.csv` is committed on purpose: it was built from OEWS May 2022-2025 on a laptop
+(BLS blocks cloud machines such as Colab), and the Colab setup reuses it instead of rebuilding.
+Re-commit it (`git add -f data/processed/occupations.csv`) whenever `build_occupations.py` is re-run with new data.
