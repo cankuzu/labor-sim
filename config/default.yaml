@@ -17,7 +17,7 @@ paths:
 llm:
   backend: mock            # mock | ollama
   ollama_url: http://localhost:11434
-  timeout_s: 120
+  timeout_s: 300
   max_retries: 2           # retries when the answer is not valid JSON
   temperature: 0.7
   max_tokens: 160

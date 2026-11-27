@@ -27,6 +27,14 @@ def load_questions(path: str | Path) -> list[dict]:
     return yaml.safe_load(Path(path).read_text())["questions"]
 
 
+def _safe(fn, *args, **kwargs) -> str:
+    """A timed-out or failed request counts as an invalid attempt instead of stopping the run."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as e:  # httpx timeouts, connection resets, HTTP 5xx
+        return f"<error: {type(e).__name__}>"
+
+
 def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: int = 2) -> dict:
     valid = letters(len(q["options"]))
     raw, answer, reason = "", None, None
@@ -34,12 +42,12 @@ def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: in
         s = seed * 1000 + attempt
         if client.mode == "chat":
             system, user = instruct_prompt(persona, q)
-            raw = client.generate(user, system=system, seed=s, schema=ANSWER_SCHEMA)
+            raw = _safe(client.generate, user, system=system, seed=s, schema=ANSWER_SCHEMA)
             obj = parse_json(raw) or {}
             a = str(obj.get("answer", "")).strip().upper()[:1]
             answer, reason = (a if a in valid else None), obj.get("reason")
         else:
-            raw = client.generate(base_prompt(persona, q), seed=s, max_tokens=8, temperature=None)
+            raw = _safe(client.generate, base_prompt(persona, q), seed=s, max_tokens=8, temperature=None)
             answer = parse_letter(raw, valid)
         if answer:
             break

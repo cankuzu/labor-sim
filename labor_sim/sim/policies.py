@@ -116,10 +116,13 @@ class LLMPolicy(RulePolicy):
     def _ask(self, system: str, prompt: str, seed: int) -> tuple[dict | None, str]:
         raw = ""
         for attempt in range(self.max_retries + 1):
-            if self.client.mode == "chat":
-                raw = self.client.generate(prompt, system=system, seed=seed * 10 + attempt)
-            else:  # base model: put the instructions in the document and let it continue the JSON
-                raw = "{" + self.client.generate(f"{system}\n\n{prompt}\nAnswer:\n{{", seed=seed * 10 + attempt)
+            try:
+                if self.client.mode == "chat":
+                    raw = self.client.generate(prompt, system=system, seed=seed * 10 + attempt)
+                else:  # base model: put the instructions in the document and let it continue the JSON
+                    raw = "{" + self.client.generate(f"{system}\n\n{prompt}\nAnswer:\n{{", seed=seed * 10 + attempt)
+            except Exception as e:  # timeout or server error: count as an invalid attempt
+                raw = f"<error: {type(e).__name__}>"
             obj = parse_json(raw)
             if obj is not None:
                 return obj, raw

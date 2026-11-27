@@ -54,12 +54,16 @@ def main(argv=None) -> int:
         personas = P.synthetic(n, seed) if a.synthetic else P.from_pew(pew, n, seed)
         for key in a.models:
             client = make_client(key, cfg)
+            client.generate("Hello", seed=0, max_tokens=1)  # load the model before sending parallel requests
             print(f"seed {seed} | {key} ({client.mode}) | {n} personas x {len(questions)} questions")
             frames.append(run_survey(client, personas, questions, seed, log_path=out / "answers.jsonl", condition=key,
                                      max_retries=cfg["llm"]["max_retries"],
                                      parallel=a.parallel or cfg["llm"].get("parallel_requests", 1)))
     df = pd.concat(frames)
     df.to_csv(out / "answers.csv", index=False)
+    errors = df["raw"].astype(str).str.startswith("<error").groupby(df["model"]).mean()
+    if errors.any():
+        print(f"\nRequests that failed (timeouts etc.) by model:\n{errors.round(3)}")
     print(f"\nValid answer rate by model:\n{df.groupby('model')['valid'].mean().round(3)}\nSaved to {out}")
     return 0
 
