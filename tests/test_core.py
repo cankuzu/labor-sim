@@ -30,6 +30,14 @@ def test_parse_letter():
     assert parse_letter("B) Somewhat worried", ["A", "B", "C"]) == "B"
     assert parse_letter("(C)", ["A", "B", "C"]) == "C"
     assert parse_letter("I think D) maybe", ["A", "B", "C"]) is None
+    assert parse_letter("A) Yes\n\nInterviewer:", ["A", "B"]) == "A"
+    assert parse_letter("2.\n\nInterviewer:", ["A", "B", "C"]) == "B"
+    assert parse_letter("9.", ["A", "B"]) is None
+    assert parse_letter("Yes, I feel overwhelmed.", ["A", "B"], ["Yes", "No"]) == "A"
+    assert parse_letter("Not much, really", ["A", "B", "C"], ["Not sure", "Not much", "None"]) == "B"
+    assert parse_letter("Absolutely", ["A", "B"]) is None
+    assert parse_letter("A few times a week.", list("ABC"), ["Every day", "A few times a week", "Never"]) == "B"
+    assert parse_letter("C) Never", list("ABC"), ["Every day", "A few times a week", "Never"]) == "C"
 
 
 def test_rescale_sums_to_total():

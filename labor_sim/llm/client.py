@@ -128,12 +128,25 @@ def parse_json(text: str) -> dict | None:
     return None
 
 
-def parse_letter(text: str, valid: list[str]) -> str | None:
-    """First option letter in a base-model continuation, e.g. 'B) Somewhat worried' -> 'B'."""
-    m = re.match(r"\s*\(?([A-H])\)?", text or "")
+def parse_letter(text: str, valid: list[str], labels: list[str] | None = None) -> str | None:
+    """Option letter in a base-model continuation.
+
+    'B) Somewhat worried' -> 'B'; a leading number is read as the option's position
+    ('2.' -> 'B'); with `labels`, an answer that starts with an option's text ('Yes, I do')
+    maps to that option. Anything else is invalid."""
+    text = text or ""
+    if labels:  # first, so 'A few times a week' is not read as letter A
+        t = re.sub(r"^[\s\"'“(]+", "", text).lower()
+        hits = [l for l, lab in zip(valid, labels) if t.startswith(lab.lower())]
+        if hits:
+            return max(hits, key=lambda l: len(labels[valid.index(l)]))  # longest match wins
+    m = re.match(r"\s*\(?([A-H])(?:\)|\.|,|:|\s|$)", text)
     if m and m.group(1) in valid:
         return m.group(1)
-    m = re.search(r"\b([A-H])\)", text or "")
+    m = re.match(r"\s*\(?([1-8])(?:\)|\.|,|:|\s|$)", text)
+    if m and int(m.group(1)) <= len(valid):
+        return valid[int(m.group(1)) - 1]
+    m = re.search(r"\b([A-H])\)", text)
     return m.group(1) if m and m.group(1) in valid else None
 
 

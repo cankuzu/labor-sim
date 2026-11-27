@@ -44,4 +44,4 @@ def base_prompt(persona: Persona, question: dict) -> str:
             "Interviewer: Please tell me a little about yourself.\n"
             f"Respondent: {persona.backstory()}\n\n"
             f"Interviewer: {question['text']}\n{format_options(question['options'])}\n"
-            "Respondent: I would choose option ")
+            "Respondent: (")  # the continuation starts with the option letter, e.g. "B) No"

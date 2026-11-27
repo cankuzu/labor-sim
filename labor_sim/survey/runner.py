@@ -48,7 +48,7 @@ def ask(client: LLMClient, persona: Persona, q: dict, seed: int, max_retries: in
             answer, reason = (a if a in valid else None), obj.get("reason")
         else:
             raw = _safe(client.generate, base_prompt(persona, q), seed=s, max_tokens=8, temperature=None)
-            answer = parse_letter(raw, valid)
+            answer = parse_letter(raw, valid, [o["label"] for o in q["options"]])
         if answer:
             break
     opt = q["options"][valid.index(answer)] if answer else None
