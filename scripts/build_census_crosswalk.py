@@ -4,7 +4,7 @@
     python scripts/build_census_crosswalk.py --xlsx ~/Downloads/2018-occupation-code-list-and-crosswalk.xlsx
 
 The workbook lists each 4-digit Census code with its 2018 SOC code. Some SOC codes are
-aggregates written with X (e.g. 13-20XX, 51-91XX); these are expanded to every detailed SOC
+aggregates written with X (e.g. 13-20XX) or as broad groups ending in 0 (e.g. 11-2030); these are expanded to every detailed SOC
 in data/processed/occupations.csv that starts with the non-X part. The sheet layout differs
 between releases, so every sheet is scanned for rows that hold both a Census code and a SOC code.
 """
@@ -52,8 +52,11 @@ def parse(xlsx: Path) -> pd.DataFrame:
 def expand(pairs: pd.DataFrame, socs: list[str]) -> pd.DataFrame:
     rows = []
     for census, raw in pairs[["census_occ", "soc_raw"]].itertuples(index=False):
-        prefix = raw.split("X")[0].rstrip("-") if "X" in raw else raw
-        hits = [s for s in socs if s.startswith(prefix)] if "X" in raw else [raw]
+        if raw in socs:
+            hits = [raw]
+        else:  # aggregate: 13-20XX, or a broad group written with trailing zeros such as 11-2030
+            prefix = raw.split("X")[0].rstrip("0").rstrip("-")
+            hits = [s for s in socs if s.startswith(prefix)] or [raw]
         rows += [{"census_occ": census, "soc": s} for s in hits]
     return pd.DataFrame(rows).drop_duplicates()
 

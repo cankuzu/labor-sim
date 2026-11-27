@@ -29,7 +29,7 @@ def _quarter(year: pd.Series, month: pd.Series) -> pd.Series:
 def occupation_exposure_for_census(occ: pd.DataFrame, crosswalk: pd.DataFrame, source: str) -> pd.DataFrame:
     """Average exposure percentile per Census occupation code."""
     col = f"pctl_{source}"
-    m = crosswalk.merge(occ[["soc", col]], on="soc", how="inner")
+    m = crosswalk.merge(occ[["soc", col]], on="soc", how="inner").dropna(subset=[col])
     out = m.groupby("census_occ", as_index=False)[col].mean()
     out["quintile"] = pd.qcut(out[col].rank(method="first"), 5, labels=[1, 2, 3, 4, 5]).astype(int)
     return out
