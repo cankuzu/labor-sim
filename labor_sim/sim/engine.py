@@ -231,16 +231,24 @@ class Simulation:
         # employer decisions
         adopted_share = sum(e.adopted_ai for e in self.employers.values()) / max(1, len(self.employers))
         decisions = {}
+        todo = []  # (cell, ws, staff, policy args): employer cells decide independently of each other
         for cell, e in self.employers.items():
             ws = [w for w in self.workers if w.cell == cell]
             staff = sum(w.employed for w in ws)
             seekers = [w for w in ws if not w.employed]
             if not ws or (vac[cell] == 0 and staff == 0):
                 continue
-            d = self.policy.employer(e, caps[cell], int(vac[cell]), staff,
-                                     {"young": sum(young(w) for w in seekers),
-                                      "experienced": sum(not young(w) for w in seekers)},
-                                     adopted_share, q)
+            todo.append((cell, ws, staff, (e, caps[cell], int(vac[cell]), staff,
+                                            {"young": sum(young(w) for w in seekers),
+                                             "experienced": sum(not young(w) for w in seekers)},
+                                            adopted_share, q)))
+        if hasattr(self.policy, "employers_batch"):
+            # LLM employers: requests can run concurrently, results are applied in cell order
+            ds = self.policy.employers_batch([args for *_, args in todo])
+        else:
+            ds = [self.policy.employer(*args) for *_, args in todo]
+        for (cell, ws, staff, args), d in zip(todo, ds):
+            e = args[0]
             decisions[cell] = d
             e.open_vacancies = d.delay
             if d.augment:

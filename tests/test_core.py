@@ -117,8 +117,9 @@ def test_parallel_worker_calls_match_sequential(occ):
         sc = SimConfig(n_workers=120, seed=3)
         pol = LLMPolicy(asdict(sc), random.Random(3), MockClient("mock", "chat"), parallel=parallel)
         res = Simulation(occ, sc, policy=pol).run()
-        runs.append([r["employment_rate"] for r in res.rounds])
-    assert runs[0] == runs[1]
+        runs.append(([r["employment_rate"] for r in res.rounds], res.cells_frame()))
+    assert runs[0][0] == runs[1][0]
+    assert runs[0][1].equals(runs[1][1])  # employer decisions too (NaN-safe comparison)
 
 
 def test_parallel_survey_matches_sequential():

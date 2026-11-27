@@ -130,7 +130,29 @@ class LLMPolicy(RulePolicy):
 
     def employer(self, e: Employer, cap: float, vacancies: int, staff: int, applicants: dict,
                  adopted_share: float, quarter: str) -> EmployerDecision:
-        prompt = (
+        return self.employers_batch([(e, cap, vacancies, staff, applicants, adopted_share, quarter)])[0]
+
+    def employers_batch(self, items: list[tuple]) -> list[EmployerDecision]:
+        """Decide for many employer cells at once, up to `parallel` requests concurrently.
+
+        Items are (employer, capability, vacancies, staff, applicants, adopted_share, quarter).
+        As in workers_batch, seeds are drawn in list order before sending and rule fallbacks
+        run afterwards in list order, so the result does not depend on `parallel`."""
+        prompts = [self._employer_prompt(*it) for it in items]
+        seeds = [self.rng.randrange(10**6) for _ in items]
+        answers = self._ask_many(EMPLOYER_SYSTEM, prompts, seeds)
+        return [self._employer_decision(it, obj, raw) for it, (obj, raw) in zip(items, answers)]
+
+    def _ask_many(self, system: str, prompts: list[str], seeds: list[int]) -> list[tuple[dict | None, str]]:
+        if self.parallel > 1 and len(prompts) > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(self.parallel) as pool:
+                return list(pool.map(lambda j: self._ask(system, j[0], j[1]), zip(prompts, seeds)))
+        return [self._ask(system, p, s) for p, s in zip(prompts, seeds)]
+
+    def _employer_prompt(self, e: Employer, cap: float, vacancies: int, staff: int, applicants: dict,
+                         adopted_share: float, quarter: str) -> str:
+        return (
             f"Quarter: {quarter}\n"
             f"Occupation group: {e.major_title} (exposure of its tasks to generative AI: {_level(e.exposure)}).\n"
             f"Current capability of AI tools for this work: {_level(cap)} ({cap:.0%}). "
@@ -147,7 +169,9 @@ class LLMPolicy(RulePolicy):
             'JSON: {"hire": 0, "delay": 0, "augment": 0, "layoffs": 0, '
             '"prefer": "experienced|junior|no_preference", "adopt_ai": true, "reason": "<one sentence>"}'
         )
-        obj, raw = self._ask(EMPLOYER_SYSTEM, prompt, seed=self.rng.randrange(10**6))
+
+    def _employer_decision(self, item: tuple, obj: dict | None, raw: str) -> EmployerDecision:
+        e, cap, vacancies, staff, applicants, adopted_share, quarter = item
         if obj is None:
             d = super().employer(e, cap, vacancies, staff, applicants, adopted_share, quarter)
             d.valid, d.raw, d.reason = False, raw, "fallback to rule: invalid JSON"
@@ -175,13 +199,7 @@ class LLMPolicy(RulePolicy):
         """
         prompts = [self._worker_prompt(*it) for it in items]
         seeds = [self.rng.randrange(10**6) for _ in items]
-        jobs = list(zip(prompts, seeds))
-        if self.parallel > 1 and len(jobs) > 1:
-            from concurrent.futures import ThreadPoolExecutor
-            with ThreadPoolExecutor(self.parallel) as pool:
-                answers = list(pool.map(lambda j: self._ask(WORKER_SYSTEM, j[0][0], j[1]), jobs))
-        else:
-            answers = [self._ask(WORKER_SYSTEM, p, s) for (p, _), s in jobs]
+        answers = self._ask_many(WORKER_SYSTEM, [p for p, _ in prompts], seeds)
         out = []
         for (w, cap, employer_adopted, quarter), (_, actions), (obj, raw) in zip(items, prompts, answers):
             action = str((obj or {}).get("action", "")).strip().lower()
